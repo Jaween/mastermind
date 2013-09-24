@@ -24,7 +24,7 @@ public class GameActivity extends Activity implements OnClickListener {
 		
 		layout = (RelativeLayout) findViewById(R.id.rlMain);
 		
-		int size = 4;
+		int size = 6;
 		board = new Board(getApplicationContext(), layout, size);
 		
 		initialiseLayout();

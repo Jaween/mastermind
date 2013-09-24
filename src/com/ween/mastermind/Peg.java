@@ -14,6 +14,8 @@ public class Peg extends Button {
 		paint = new Paint();
 		paint.setAntiAlias(true);
 		setColour(colour);
+		
+		setText("Peg ID " + getId());
 	}
 	
 	int getColour() {
@@ -28,6 +30,9 @@ public class Peg extends Button {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		canvas.drawCircle(getWidth()/2, getHeight()/2, getHeight()/2, paint);
+		canvas.drawCircle(50, 50, getHeight()/2, paint);
 		super.onDraw(canvas);
 	}
+	
+	
 }

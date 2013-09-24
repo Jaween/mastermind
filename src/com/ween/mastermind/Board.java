@@ -3,70 +3,90 @@ package com.ween.mastermind;
 import java.util.ArrayList;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 
-public class Board extends View {
+public class Board extends View implements OnClickListener {
 
 	private int solutionSize;
+	private int numberOfRows;
+	private int[] score = new int[2];
+	
 	private ArrayList<GuessRow> guessRows;
 	private GuessRow currentRow;
-	private Row palletRow;
+	private Row paletteRow;
 	private SolutionRow solutionRow;
-	private int[] score = new int[2];
+	
+	private RelativeLayout layout;
+	private float dp = 2;
+	private int margin = (int) (4*dp);
 	
 	private Context context;
 	
 	Board(Context context, RelativeLayout layout, int solutionSize) {
 		super(context);
 		this.context = context;
+		this.layout = layout;
 		this.solutionSize = solutionSize;
 		
-		ArrayList<Peg> solutionPegs = makeSolution(solutionSize);
-		solutionRow = new SolutionRow(context, solutionPegs);
+		numberOfRows = 7;
 		
-		guessRows = new ArrayList<GuessRow>(solutionSize);
-		
-		for (int i = 0; i < solutionSize; i++) {
-			GuessRow row = new GuessRow(context, solutionSize);
-			row.setId(100 + i);
-			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-			
-			// Sets the row to be above the previous row, and places the first row at the bottom
-			if (i != 0) {
-				int previousID = guessRows.get(i - 1).getId();
-				params.addRule(RelativeLayout.ABOVE, previousID);
-			} else {
-				params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-			}
-			
-			// HEY! I'M CURRENTLY TRYING TO DISPLAY ALL THE ROWS AND SLOTS, ETC. CORRECTLY
-			// I'M USING THESE PEGS HERE TO BE PLACED AT THE LOCATION OF THE ROWS SO I CAN
-			// SEE WHAT I'M DOING! THE HIERARCHY SHOULD BE AS FOLLOWS: PEGS ARE DRAWN,
-			// THEY'RE WITHIN, SLOTS, THERE'S FOUR SLOTS BESIDE EACH OTHER PER ROW 
-			// AND MANY STACKED ROWS
-			// TEST
-			Peg peg = new Peg(context, (int) (Math.random() * Integer.MAX_VALUE));
-			peg.setText("i is " + i);
-			peg.setTextColor(Color.BLACK);
-			Log.d("Board", "Left is " +  peg.getLeft());
-			peg.setLayoutParams(params);
-			layout.addView(peg);
-			
-			row.setLayoutParams(params);
-			guessRows.add(row);
-			layout.addView(row);
-		}
+		createRows();
 		currentRow = guessRows.get(0);
-		
-		palletRow = createPallet(solutionSize);
 	}
 	
-	private Row createPallet(int size) {
-		Row pallet = new Row(context, size);
-		for (int i = 0; i < size; i++) {
+	// Creates and performs the layout of the palette, guess rows and solution row
+	private void createRows() {
+		
+		// Create the palette and position it
+		RelativeLayout.LayoutParams paletteParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, 96);
+		paletteParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+		paletteRow = createPalette();
+		paletteRow.setId(10101);
+		paletteRow.setLayoutParams(paletteParams);
+		layout.addView(paletteRow);
+		
+		// Creates the guess rows
+		guessRows = new ArrayList<GuessRow>(solutionSize);
+		for (int i = 0; i < numberOfRows; i++) {
+			GuessRow guessRow = new GuessRow(context, solutionSize, layout);
+			
+			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, 96);
+			params.topMargin = margin;
+			params.bottomMargin = margin;
+
+			// First row above the palette, subsequent rows stacked above
+			if (i == 0) {
+				int paletteID = paletteRow.getId();
+				params.addRule(RelativeLayout.ABOVE, paletteID);
+			} else {
+				int previousID = guessRows.get(i - 1).getId();
+				params.addRule(RelativeLayout.ABOVE, previousID);
+			}
+
+			int id = 100 + i;
+			guessRow.setId(id);
+			guessRow.setLayoutParams(params);
+			guessRows.add(guessRow);
+			layout.addView(guessRow);
+			
+//			RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(96, 96);
+//			buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+//			buttonParams.addRule(RelativeLayout.ALIGN_BASELINE, guessRow.getId());
+//			Button okButton = new Button(context);
+//			okButton.setText("OK");
+//			okButton.setLayoutParams(buttonParams);
+//			layout.addView(okButton);			
+		}
+	}
+	
+	
+	private Row createPalette() {
+		Row pallet = new Row(context, solutionSize, layout);
+		for (int i = 0; i < solutionSize; i++) {
 			pallet.setPeg(i, new Peg(context, (int) (Math.random() * Integer.MAX_VALUE)));
 		}
 		return pallet;
@@ -141,6 +161,12 @@ public class Board extends View {
 	
 	public int[] getScore() {
 		return score;
+	}
+
+	@Override
+	public void onClick(View v) {
+		Log.d("Board", "Clicked peg " + v.getId());
+		Log.d("Board", "There are " + guessRows.size() + " guess rows");
 	}
 	
 }
