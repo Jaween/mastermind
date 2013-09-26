@@ -12,7 +12,7 @@ import android.view.View;
 
 public class Slot extends View {
 	
-	private boolean empty;
+	private boolean empty = true;
 	private Peg peg;
 	
 	// Drawing fields
@@ -20,12 +20,12 @@ public class Slot extends View {
 	private Paint pegPaint;
 	private RectF borderRect;
 	private float radius;
+	private float dp = 2;
 	
 	Slot(Context context) {
 		super(context);
-		empty = true;
 		
-		float dp = 2;
+		//setAlpha(1);
 		radius = 20*dp;
 		
 		outlinePaint = new Paint();
@@ -50,14 +50,22 @@ public class Slot extends View {
 		this.peg = peg;
 		
 		if (peg != null) {
-			peg.setLayoutParams(getLayoutParams());
-			pegPaint.setColor(peg.getColour());
 			empty = false;
+			peg.setLayoutParams(getLayoutParams());
+			int pegColour = peg.getColour();
+			pegPaint.setColor(pegColour);
+			
+			float[] pegColourHSV = new float[3];
+			Color.colorToHSV(pegColour, pegColourHSV);
+			pegColourHSV[2] *= 0.7;
+			outlinePaint.setColor(Color.HSVToColor(pegColourHSV));
 		} else {
 			empty = true;
 			pegPaint.setColor(Color.LTGRAY);
+			outlinePaint.setColor(Color.DKGRAY);
 		}
-
+		
+		invalidate();
 	}
 	
 	@Override
@@ -69,7 +77,7 @@ public class Slot extends View {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		canvas.drawCircle(getWidth()/2, getHeight()/2, radius, outlinePaint);
-		canvas.drawCircle(getWidth()/2, getHeight()/2, radius, pegPaint);
+		canvas.drawCircle(getWidth()/2, getHeight()/2, (radius - 1*dp), pegPaint);
 		super.onDraw(canvas);
 	}
 

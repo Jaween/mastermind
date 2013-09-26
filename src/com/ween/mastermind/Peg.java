@@ -3,9 +3,10 @@ package com.ween.mastermind;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.widget.Button;
+import android.util.Log;
+import android.view.View;
 
-public class Peg extends Button {
+public class Peg extends View {
 	private int colour;
 	private Paint paint;
 	
@@ -14,8 +15,6 @@ public class Peg extends Button {
 		paint = new Paint();
 		paint.setAntiAlias(true);
 		setColour(colour);
-		
-		setText("Peg ID " + getId());
 	}
 	
 	int getColour() {
@@ -27,6 +26,13 @@ public class Peg extends Button {
 		paint.setColor(colour);
 	}
 	
+	@Override
+	protected void onLayout(boolean changed, int left, int top, int right,
+			int bottom) {
+		//Log.d("Peg", "Size is (" + getWidth() + ", " + getHeight() + ")");
+		super.onLayout(changed, left, top, right, bottom);
+	}
+
 	@Override
 	protected void onDraw(Canvas canvas) {
 		canvas.drawCircle(getWidth()/2, getHeight()/2, getHeight()/2, paint);

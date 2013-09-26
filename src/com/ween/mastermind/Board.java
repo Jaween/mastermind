@@ -3,28 +3,42 @@ package com.ween.mastermind;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
+import android.widget.RelativeLayout.LayoutParams;
 
-public class Board extends View implements OnClickListener {
+public class Board extends View implements OnClickListener, OnTouchListener {
 
 	private int solutionSize;
 	private int numberOfRows;
 	private int[] score = new int[2];
+	private int guessNumber = 0;
 	
 	private ArrayList<GuessRow> guessRows;
 	private GuessRow currentRow;
 	private Row paletteRow;
 	private SolutionRow solutionRow;
+	private ArrayList<Button> okButtons;
 	
 	private RelativeLayout layout;
 	private float dp = 2;
 	private int margin = (int) (4*dp);
 	
+	private final int OKBUTTON_ID = 700;
+	
 	private Context context;
+	
+	
+	private RelativeLayout.LayoutParams pegParams;
+	private int downX = 0;
+	private int downY = 0;
 	
 	Board(Context context, RelativeLayout layout, int solutionSize) {
 		super(context);
@@ -33,9 +47,23 @@ public class Board extends View implements OnClickListener {
 		this.solutionSize = solutionSize;
 		
 		numberOfRows = 7;
-		
+		createOKButtons();
 		createRows();
+		solutionRow = new SolutionRow(context, generateSolution(), layout);
+		
 		currentRow = guessRows.get(0);
+	}
+
+	private void createOKButtons() {
+		okButtons = new ArrayList<Button>(numberOfRows);
+		for (int i = 0; i < numberOfRows; i++) {
+			Button okButton = new Button(context);
+			okButton.setText("OK");
+			okButton.setId(OKBUTTON_ID + i);
+			okButton.setOnClickListener(this);
+			okButton.setTextColor(Color.BLACK);
+			okButtons.add(okButton);
+		}
 	}
 	
 	// Creates and performs the layout of the palette, guess rows and solution row
@@ -45,14 +73,14 @@ public class Board extends View implements OnClickListener {
 		RelativeLayout.LayoutParams paletteParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, 96);
 		paletteParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 		paletteRow = createPalette();
-		paletteRow.setId(10101);
+		paletteRow.setId(500);
 		paletteRow.setLayoutParams(paletteParams);
 		layout.addView(paletteRow);
 		
 		// Creates the guess rows
 		guessRows = new ArrayList<GuessRow>(solutionSize);
 		for (int i = 0; i < numberOfRows; i++) {
-			GuessRow guessRow = new GuessRow(context, solutionSize, layout);
+			GuessRow guessRow = new GuessRow(context, solutionSize, layout, okButtons.get(i));
 			
 			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, 96);
 			params.topMargin = margin;
@@ -71,36 +99,50 @@ public class Board extends View implements OnClickListener {
 			guessRow.setId(id);
 			guessRow.setLayoutParams(params);
 			guessRows.add(guessRow);
-			layout.addView(guessRow);
 			
-//			RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(96, 96);
-//			buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-//			buttonParams.addRule(RelativeLayout.ALIGN_BASELINE, guessRow.getId());
-//			Button okButton = new Button(context);
-//			okButton.setText("OK");
-//			okButton.setLayoutParams(buttonParams);
-//			layout.addView(okButton);			
+			// Only make the first row visible
+			if (i <= guessNumber)
+			{
+				guessRow.setHighlighted(true);
+				layout.addView(guessRow);
+			}
 		}
 	}
-	
 	
 	private Row createPalette() {
-		Row pallet = new Row(context, solutionSize, layout);
-		for (int i = 0; i < solutionSize; i++) {
-			pallet.setPeg(i, new Peg(context, (int) (Math.random() * Integer.MAX_VALUE)));
+		pegParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+		pegParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+		int paletteSize = 6;
+		Row palette = new Row(context, paletteSize, layout);
+		for (int i = 0; i < paletteSize; i++) {
+			Peg palettePeg = new Peg(context, (int) (Math.random() * Integer.MAX_VALUE));
+			palettePeg.setOnTouchListener(this);
+			palettePeg.setOnClickListener(this);
+			
+			pegParams.addRule(RelativeLayout.ALIGN_BASELINE, palette.getSlot(i).getId());
+			palettePeg.setLayoutParams(pegParams);
+			
+			palette.setPeg(i, palettePeg);
+			//layout.addView(palettePeg);
+			
+			// Temporary peg selection
+			Slot slot = palette.getSlot(i);
+			slot.setOnTouchListener(this);
 		}
-		return pallet;
+		return palette;
 	}
 	
-	private ArrayList<Peg> makeSolution(int size) {
-		ArrayList<Peg> pegs = new ArrayList<Peg>(size);
-		for (int i = 0; i < size; i++) {
-			int colour = (int) (Math.random() * 4);
-			Peg peg = new Peg(context, colour);
-			Log.d("Board", "Solution " + i + " is " + colour);
-			pegs.add(peg);
+	private ArrayList<Peg> generateSolution() {
+		int paletteSize = paletteRow.getSize();
+		ArrayList<Peg> solutionPegs = new ArrayList<Peg>(solutionSize);
+		for (int i = 0; i < solutionSize; i++) {
+			int randomPalettePeg = (int) (Math.random() * paletteSize);
+			Peg peg = paletteRow.getSlot(randomPalettePeg).getPeg();
+			solutionPegs.add(peg);
+			
+			int colour = peg.getColour();
 		}
-		return pegs;
+		return solutionPegs;
 	}
 	
 	public boolean setNextPeg(Peg peg) {
@@ -124,13 +166,12 @@ public class Board extends View implements OnClickListener {
 		for (int i = 0; i < solutionSize; i++) {
 			pegCounted[i] = false;
 			if (currentRow.getSlot(i).isEmpty()) {
-				Log.d("Board", "Slot " + i + " is empty");
 				return false;
 			} 
  		}
 		
 		// Counts blacks
-		int blacks = 0;		
+		int blacks = 0;
 		for (int i = 0; i < solutionSize; i++) {
 			int guessColour = currentRow.getSlot(i).getPeg().getColour();
 			int solutionColour = solutionRow.getSlot(i).getPeg().getColour();
@@ -162,11 +203,61 @@ public class Board extends View implements OnClickListener {
 	public int[] getScore() {
 		return score;
 	}
-
+	
+	public void switchToNextRow() {
+		guessNumber++;
+		currentRow.setHighlighted(false);
+		currentRow.removeOKButton();
+		currentRow = guessRows.get(guessNumber);
+		currentRow.setHighlighted(true);
+		layout.addView(currentRow);	
+	}
+	
 	@Override
-	public void onClick(View v) {
-		Log.d("Board", "Clicked peg " + v.getId());
-		Log.d("Board", "There are " + guessRows.size() + " guess rows");
+	public void onClick(View view) {
+		if (view instanceof Button) {
+			// Displays the score
+			if (view.getId()  <= OKBUTTON_ID + numberOfRows - 1) {
+				scoreGuess();
+				int[] score = getScore();
+				Toast.makeText(context, "Scored B:" + score[0] + ", W:" + score[1], Toast.LENGTH_SHORT).show();
+				
+			} 
+			
+			// We are have guesses to go so move to the next row
+			if (view.getId()  < OKBUTTON_ID + numberOfRows - 1) {
+				switchToNextRow();				
+			}
+		} 
+		
+//		if (view instanceof Peg)
+//			setNextPeg((Peg) view);
+	}
+	
+	@Override
+	public boolean onTouch(View view, MotionEvent event) {
+		if (view instanceof Peg) {
+			pegParams = (LayoutParams) view.getLayoutParams();
+			Log.d("Touch", "Params are " + pegParams.leftMargin);
+			
+			switch(event.getAction()) {
+				case MotionEvent.ACTION_DOWN:
+					downX = (int) event.getX(0);
+					downY = (int) event.getY(0);
+					break;
+				case MotionEvent.ACTION_MOVE:
+					pegParams.leftMargin += (int) event.getX(0) - downX;
+					pegParams.topMargin += (int) event.getY(0) - downY;
+					view.setLayoutParams(pegParams);
+					break;
+				case MotionEvent.ACTION_UP:
+					break;
+			}
+		}
+		
+		if (view instanceof Slot)
+			setNextPeg(((Slot) view).getPeg());
+		return false;
 	}
 	
 }
